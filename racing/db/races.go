@@ -15,6 +15,9 @@ import (
 	"git.neds.sh/matty/entain/racing/proto/racing"
 )
 
+const Open = "OPEN"
+const Closed = "CLOSED"
+
 // RacesRepo provides repository access to races.
 type RacesRepo interface {
 	// Init will initialise our races repository.
@@ -121,6 +124,7 @@ func (m *racesRepo) scanRaces(
 
 		races = append(races, &race)
 	}
+	races = addStatus(races)
 
 	return races, nil
 }
@@ -149,4 +153,21 @@ func (r *racesRepo) applyOrderBy(query string, orderBy *racing.ListRacesRequestO
 		}
 	}
 	return query
+}
+
+func addStatus(races []*racing.Race) []*racing.Race {
+	for _, race := range races {
+
+		if race.AdvertisedStartTime == nil {
+			race.Status = Closed
+		}
+
+		if race.AdvertisedStartTime.AsTime().After(time.Now()) {
+			race.Status = Open
+		} else {
+			race.Status = Closed
+		}
+	}
+
+	return races
 }

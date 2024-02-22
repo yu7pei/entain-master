@@ -3,9 +3,12 @@ package db
 import (
 	"database/sql"
 	"git.neds.sh/matty/entain/racing/proto/racing"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func Test_racesRepo_applyFilter(t *testing.T) {
@@ -224,6 +227,42 @@ func Test_racesRepo_applyOrderBy(t *testing.T) {
 
 			if got := r.applyOrderBy(tt.args.query, tt.args.orderBy); replacer.Replace(got) != tt.want {
 				t.Errorf("applyOrderBy() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_addStatus(t *testing.T) {
+	var (
+		futureTime = timestamppb.New(time.Now().Add(time.Hour * 24))
+		pastTime   = timestamppb.New(time.Now().Add(-time.Hour * 24))
+	)
+	type args struct {
+		races []*racing.Race
+	}
+	tests := []struct {
+		name string
+		args args
+		want []*racing.Race
+	}{
+		{
+			name: "Single race with future time",
+			args: args{
+				races: []*racing.Race{
+					{AdvertisedStartTime: futureTime},
+					{AdvertisedStartTime: pastTime},
+				},
+			},
+			want: []*racing.Race{
+				{AdvertisedStartTime: futureTime, Status: Open},
+				{AdvertisedStartTime: pastTime, Status: Closed},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := addStatus(tt.args.races); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("addStatus() = %v, want %v", got, tt.want)
 			}
 		})
 	}
