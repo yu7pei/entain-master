@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const _racingTestsDB = "racing.db"
+
 func Test_racesRepo_applyFilter(t *testing.T) {
 	type fields struct {
 		db   *sql.DB
@@ -266,4 +268,74 @@ func Test_addStatus(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_racesRepo_GetByID(t *testing.T) {
+	type fields struct {
+		db   *sql.DB
+		init sync.Once
+	}
+	type args struct {
+		id int64
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *racing.Race
+		want1   string
+		wantErr bool
+	}{
+		{
+			name:    "get by non-existed id",
+			fields:  fields{},
+			args:    args{id: 10000},
+			want1:   "SELECT id, meeting_id, name, number, visible, advertised_start_time FROM races WHERE id = ?",
+			wantErr: true,
+		},
+		{
+			name:   "get by id",
+			fields: fields{},
+			args:   args{id: 1},
+			want1:  "SELECT id, meeting_id, name, number, visible, advertised_start_time FROM races WHERE id = ?",
+		},
+	}
+
+	replacer := strings.NewReplacer("\n", "", "\t", "")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &racesRepo{
+				db:   setupDb(t),
+				init: tt.fields.init,
+			}
+			_, got1, err := r.GetByID(tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetByID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if replacer.Replace(got1) != tt.want1 {
+				t.Errorf("GetByID() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func setupDb(t *testing.T) *sql.DB {
+	var (
+		err error
+	)
+
+	db, err := sql.Open("sqlite3", _racingTestsDB)
+	if err != nil {
+		t.Fatalf("Could not open test database. %s", err)
+	}
+
+	statement, err := db.Prepare(`CREATE TABLE IF NOT EXISTS races (id INTEGER PRIMARY KEY, meeting_id INTEGER, name TEXT, number INTEGER, visible INTEGER, advertised_start_time DATETIME)`)
+	if err == nil {
+		_, err = statement.Exec()
+	}
+
+	return db
 }
