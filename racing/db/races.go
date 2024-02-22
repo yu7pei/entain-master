@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"log"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,7 +21,7 @@ type RacesRepo interface {
 	Init() error
 
 	// List will return a list of races.
-	List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error)
+	List(filter *racing.ListRacesRequestFilter, orderBy *racing.ListRacesRequestOrderBy) ([]*racing.Race, error)
 }
 
 type racesRepo struct {
@@ -44,7 +46,7 @@ func (r *racesRepo) Init() error {
 	return err
 }
 
-func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error) {
+func (r *racesRepo) List(filter *racing.ListRacesRequestFilter, orderBy *racing.ListRacesRequestOrderBy) ([]*racing.Race, error) {
 	var (
 		err   error
 		query string
@@ -54,6 +56,8 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 	query = getRaceQueries()[racesList]
 
 	query, args = r.applyFilter(query, filter)
+
+	query = r.applyOrderBy(query, orderBy)
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
@@ -119,4 +123,30 @@ func (m *racesRepo) scanRaces(
 	}
 
 	return races, nil
+}
+
+// this function is for users order result by column
+func (r *racesRepo) applyOrderBy(query string, orderBy *racing.ListRacesRequestOrderBy) string {
+	// valid columns name
+	columns := []string{"id", "meeting_id", "name", "number", "visible", "advertised_start_time"}
+
+	if orderBy == nil {
+		return query
+	}
+	if ok := slices.Contains(columns, orderBy.Parameter); !ok {
+		log.Print("please input correct parameter for order by. such as 'advertised_start_time'!")
+		return query
+	}
+	query += " ORDER BY " + orderBy.GetParameter()
+
+	// append direction after query
+	if orderBy.Direction != nil {
+		direction := strings.ToUpper(orderBy.GetDirection())
+		if direction == "ASC" {
+			query += " ASC"
+		} else if direction == "DESC" {
+			query += " DESC"
+		}
+	}
+	return query
 }

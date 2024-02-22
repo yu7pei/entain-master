@@ -14,6 +14,7 @@ service Racing {
 
 message ListRacesRequest {
   ListRacesRequestFilter filter = 1;
+  ListRacesRequestOrderBy order_by = 2;
 }
 
 // Response to ListRaces call.
@@ -28,6 +29,12 @@ message ListRacesRequestFilter {
 
 }
 
+// direction allows order by 'desc' or 'asc'
+// default field is advertised_start_time
+message ListRacesRequestOrderBy {
+  string parameter = 1;
+  optional string direction = 2;
+}
 /* Resources */
 
 // A race resource.
