@@ -1,0 +1,98 @@
+syntax = "proto3";
+package sports;
+
+option go_package = "/sports";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+service Sports {
+  // ListEvents return a list of tennis game. including two players and winner and so on.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse) {
+    option (google.api.http) = { post: "/v1/list-events", body: "*" };
+  }
+
+  // ListEvents return a list of tennis game. including two players and winner and so on.
+  rpc UpdateWinner(ListEventsRequest) returns (ListEventsResponse) {
+    option (google.api.http) = { post: "/v1/update-winner", body: "*" };
+  }
+
+  // GetSingleEventById return a event by Id
+  rpc GetSingleEventById(GetSingleEventByIdRequest) returns(GetSingleEventIdResponse) {
+    option (google.api.http) = { get: "/v1/single-event/{id}"};
+  }
+}
+
+/* Requests/Responses */
+message ListEventsRequest {
+  ListEventsRequestFilter filter = 1;
+  ListEventsRequestOrder order = 2;
+}
+
+// Request to Update winner for an event
+message UpdateWinnerRequest {
+  int64 id = 1;
+  string winner = 2;
+}
+
+// Response to ListEvents call.
+message ListEventsResponse {
+  repeated Event events = 1;
+}
+
+// request to get single event by id
+message GetSingleEventByIdRequest {
+  int64 id = 1;
+}
+
+// Response to UpdateWinner call.
+message UpdateWinnerResponse {
+  bool is_success = 1;
+}
+
+// Response to get single event by id
+message GetSingleEventIdResponse {
+  Event event = 1;
+}
+
+
+
+// Filter for listing tennis events.
+message ListEventsRequestFilter {
+  optional string player = 1;
+  optional string winner = 2;
+  optional string arena = 3;
+  optional bool status = 4;
+  optional bool visible = 5;
+}
+
+// ListEventsRequestOrder supports list events return result by order.
+message ListEventsRequestOrder {
+  string parameter = 1;
+  optional string direction = 2;
+}
+
+/* Resources */
+
+// An event resource.
+message Event {
+  // ID represents a unique identifier for the event.
+  int64 id = 1;
+  // Name represents the combination of awayTeam vs homeTeam
+  string name = 2;
+  // PlayerOne represents the name of the player
+  string player_one = 3;
+  // PlayerOne represents the name of the another player
+  string player_two = 4;
+  // Arena is the location for the tennis event
+  string arena = 5;
+  // Visible represents whether or not the event is visible.
+  bool visible = 6;
+  // Winner shows the event winner
+  string winner = 7;
+  // AdvertisedStartTime is the time the event is advertised to start.
+  google.protobuf.Timestamp advertised_start_time = 8;
+  // Status shows whether AdvertisedStartTime is in the past or future.
+  string status = 9;
+}
+
