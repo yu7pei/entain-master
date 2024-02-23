@@ -35,6 +35,7 @@ func (s *racingService) ListRaces(ctx context.Context, in *racing.ListRacesReque
 
 func (s *racingService) GetSingleRace(ctx context.Context, in *racing.GetSingleRaceRequest) (*racing.Race, error) {
 	race, _, err := s.racesRepo.GetByID(in.Id)
+	
 	if err != nil {
 		return nil, err
 	}
