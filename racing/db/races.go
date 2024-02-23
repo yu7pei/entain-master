@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"slices"
 	"strconv"
@@ -25,6 +27,7 @@ type RacesRepo interface {
 
 	// List will return a list of races.
 	List(filter *racing.ListRacesRequestFilter, orderBy *racing.ListRacesRequestOrderBy) ([]*racing.Race, error)
+	GetByID(id int64) (*racing.Race, string, error)
 }
 
 type racesRepo struct {
@@ -96,6 +99,37 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 	}
 
 	return query, args
+}
+
+func (r *racesRepo) GetByID(id int64) (*racing.Race, string, error) {
+	var (
+		err   error
+		query string
+		args  []interface{}
+	)
+
+	query = getRaceQueries()[racesList]
+
+	query += " WHERE id = ?"
+	args = append(args, id)
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, query, err
+	}
+
+	res, err := r.scanRaces(rows)
+	if err != nil {
+		return nil, query, err
+	}
+
+	if len(res) == 0 {
+		// Race was not found
+		err = status.Error(codes.NotFound, "Race was not found")
+		return nil, query, err
+	}
+
+	return res[0], query, nil
 }
 
 func (m *racesRepo) scanRaces(
